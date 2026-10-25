@@ -24,6 +24,21 @@ API Key 用 Windows DPAPI 加密存于本机，不明文、不上传。
 
 ---
 
+## 界面预览
+
+| 浅色主题 | 深色主题 |
+|---|---|
+| <img src="docs/screenshot-light.png" width="360" alt="light"> | <img src="docs/screenshot-dark.png" width="360" alt="dark"> |
+
+**「钉在桌面」迷你卡**（无边框、窗口 region 真实裁圆角、实时网速）：
+
+<p><img src="docs/screenshot-mini.png" width="300" alt="mini"></p>
+
+> 截图由 `_shot_readme.py` 生成：配置与历史都指向临时目录，余额 / 消耗 / 网速均为演示数据，
+> API Key 输入框默认 `•••` 遮罩（仅聚焦时临时显示明文，失焦立刻复原）。
+
+---
+
 ## 1. 项目结构
 
 ```
@@ -47,6 +62,8 @@ deepseek-balance-viewer/
 ├── test_logic.py        # 无界面逻辑自测（接口/加解密/价格/界面布局契约/网速/玻璃/图标）
 ├── _smoke_ui.py         # 界面冒烟（真实建窗 + 注入数据 + 布局/命中/重绘校验）
 ├── _shot_ui.py          # 截图工具（PrintWindow 抓窗口自绘内容，出验收图 + 自动审计）
+├── _shot_readme.py      # 生成 README 截图（演示数据 + 遮罩 Key，docs/ 下三张图）
+├── docs/                # README 用的界面截图（screenshot-light/dark/mini.png）
 ├── _audit_contrast.py   # 可读性门禁：逐区域 WCAG 对比度 + 拉普拉斯锐度，不过则 FAIL
 ├── _check_bundle.py     # 校验 exe 是否含目标模块、是否比源码旧
 ├── run.bat              # 一键启动（Windows）

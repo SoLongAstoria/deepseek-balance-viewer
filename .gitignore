@@ -37,6 +37,7 @@ venv/
 *.png
 !app_icon.png
 !_icon_preview.png
+!docs/screenshot-*.png
 *.ico
 !app_icon.ico
 
