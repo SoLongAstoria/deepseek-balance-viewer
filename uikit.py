@@ -574,13 +574,16 @@ class MainView(tk.Canvas):
                            textvariable=self.key_var,
                            highlightthickness=0, font=self.p.font(10),
                            bg=pal["card"], fg=pal["fg"],
-                           insertbackground=pal["fg"])
+                           insertbackground=pal["fg"],
+                           # ⚠ 默认遮罩：截图 / 录屏 / 旁人围观时不会泄露 Key
+                           show="\u2022")
             # 首次创建就带上真实值：若此时 state 还没填好，key_var 会是空，
             # 一旦拿到焦点再失焦，<FocusOut> 就会把空值写回配置（丢 Key 的根因）。
             self.key_var.set(st.get("api_key", ""))
             self._key_dirty = False
             ent.bind("<Key>", lambda ev: self._mark_key_dirty())
-            ent.bind("<FocusOut>", lambda ev: self._commit_key())
+            ent.bind("<FocusOut>",
+                     lambda ev: (self._mask_key(True), self._commit_key()))
             ent.bind("<Return>", lambda ev: (self._commit_key(), self.focus_set()))
             ent.bind("<FocusIn>", lambda ev: self._on_entry_focus())
             self._entries["key"] = ent
@@ -613,8 +616,23 @@ class MainView(tk.Canvas):
         self.app.on_key_commit(self.key_var.get())
 
     def _on_entry_focus(self):
-        """Entry 获得焦点 → 重绘设置块，让圆角框描边变强调色。"""
+        """API Key 输入框获得焦点 → 描边变强调色，并临时显示明文便于核对粘贴。
+
+        失焦后立刻回到遮罩（`_mask_key(True)`）：默认状态永远是 `••••`，
+        所以截图 / 录屏 / 演示时不会把 Key 露在画面里。
+        """
+        self._mask_key(False)
         self.redraw("settings")
+
+    def _mask_key(self, masked=True):
+        """切换 API Key 输入框的遮罩显示（只影响显示，`key_var` 的值不变）。"""
+        ent = self._entries.get("key")
+        if ent is None:
+            return
+        try:
+            ent.configure(show="\u2022" if masked else "")
+        except Exception:
+            pass
 
     def _key_box(self):
         """API Key 输入框在 Canvas 上的位置（与 _draw_settings 保持一致）。"""

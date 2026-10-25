@@ -385,6 +385,21 @@ def test_ui_layout():
         # 提交后 dirty 复位，再失焦不会重复提交
         v._commit_key()
         assert stub.key_commits == ["sk-new-key"], "dirty 未复位，重复提交"
+        # 7.9 API Key 输入框默认必须遮罩（截图 / 录屏 / 旁观不泄露 Key），
+        #     聚焦临时显示明文，失焦立刻复原；且遮罩不影响 key_var 的真值。
+        ent = v._entries.get("key")
+        if ent is not None:
+            v.redraw("settings")
+            root.update_idletasks()
+            assert ent.cget("show") == "\u2022", \
+                f"Key 输入框未遮罩（show={ent.cget('show')!r}）→ 截图会泄露"
+            # 值可能与界面状态不同步（stub 不落盘），重点验证**遮罩不改动值**
+            before = v.key_var.get()
+            v._on_entry_focus()
+            assert ent.cget("show") == "", "聚焦时应显示明文便于核对"
+            v._mask_key(True)
+            assert ent.cget("show") == "\u2022", "失焦后应恢复遮罩"
+            assert v.key_var.get() == before, "遮罩不应改动输入框的真实值"
     finally:
         root.destroy()
     print("[OK] 界面布局对齐设计稿 / 命中区域完整 / 局部重绘不泄漏 / 主题切换正常")
