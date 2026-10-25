@@ -1,0 +1,8 @@
+# 运行依赖：
+#   核心功能 —— 无（tkinter/urllib/configparser/ctypes 均内置）
+#   系统托盘 + 截图功能 —— 需以下两个；脚本模式运行前安装即可，打包时已自动打入 exe：
+#     pip install pystray pillow
+#
+# 打包成 exe 需要 PyInstaller（命令见 README「6. 打包为单 exe」）：
+#   pip install pyinstaller
+#   python -m PyInstaller main.py --noconsole --onefile --name DeepSeekBalanceViewer --icon app_icon.ico ...

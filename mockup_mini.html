@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>DeepSeek 余额 · 钉在桌面 迷你窗效果图</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Segoe UI","Microsoft YaHei",sans-serif;
+         background:#1f2230; /* 模拟深色桌面背景，突出悬浮小窗 */
+         display:flex; align-items:center; justify-content:center; height:100vh; }
+  .desktop-hint { position:fixed; top:16px; left:16px; color:#5b6276; font-size:12px; }
+
+  /* 迷你悬浮窗：宽 230 高 132，圆角，阴影，置顶观感 */
+  .mini {
+    width:230px; background:#ffffff; border-radius:12px;
+    box-shadow:0 8px 28px rgba(0,0,0,.45);
+    padding:10px 12px; user-select:none;
+    border:1px solid #e4e8ee;
+  }
+  .mini-top { display:flex; align-items:center; justify-content:space-between; }
+  .mini-title { font-size:11px; color:#8a93a0; font-weight:600; letter-spacing:.3px; }
+  .mini-dot { width:7px; height:7px; border-radius:50%; background:#2e7d32; }
+  .mini-balance { font-size:26px; font-weight:800; color:#1f2733; margin:4px 0 2px; }
+  .mini-balance span { font-size:12px; font-weight:600; color:#9aa3ad; margin-left:4px; }
+  .mini-period { display:inline-block; font-size:11px; font-weight:700; color:#fff;
+                 background:#c0392b; padding:2px 7px; border-radius:6px; }
+  .mini-time { font-size:10px; color:#9aa3ad; margin-left:6px; }
+  .mini-price { font-size:11px; color:#5a6573; margin-top:7px;
+                border-top:1px solid #eef1f5; padding-top:6px; }
+  .mini-price b { color:#1f2733; }
+  .mini-foot { font-size:9px; color:#b3bac4; margin-top:5px; }
+  .mini-handle { cursor:grab; }
+</style>
+</head>
+<body>
+  <div class="desktop-hint">模拟桌面（迷你窗可拖到任意角落并始终置顶）</div>
+
+  <div class="mini">
+    <div class="mini-top mini-handle">
+      <div class="mini-title">DeepSeek 余额</div>
+      <div class="mini-dot" title="自动刷新中"></div>
+    </div>
+
+    <div class="mini-balance">110.00<span>CNY</span></div>
+
+    <div>
+      <span class="mini-period">高峰时段</span>
+      <span class="mini-time">09-29 15:09 (北京)</span>
+    </div>
+
+    <div class="mini-price">
+      当前计费：<b>V4.1-Flash 输出 8 元</b> / 百万 tokens
+    </div>
+
+    <div class="mini-foot">双击刷新 · 右键菜单 · 拖拽移动</div>
+  </div>
+</body>
+</html>

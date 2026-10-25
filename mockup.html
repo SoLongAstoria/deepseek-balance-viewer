@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepSeek 余额 / 用量查看器 · 效果图</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #e9eef3;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 28px; color: #1f2329;
+  }
+  /* 模拟 Windows 窗口 */
+  .window {
+    width: 540px; background: #f3f3f3; border: 1px solid #c9ced6;
+    border-radius: 8px; box-shadow: 0 12px 36px rgba(0,0,0,.18); overflow: hidden;
+  }
+  .titlebar {
+    height: 36px; background: linear-gradient(#fafafa,#ebebeb);
+    display: flex; align-items: center; padding: 0 12px;
+    border-bottom: 1px solid #d6d6d6; font-size: 13px; font-weight: 600; color:#333;
+  }
+  .titlebar .dots { margin-left:auto; display:flex; gap:7px; }
+  .titlebar .dots i { width:12px; height:12px; border-radius:50%; display:block; }
+  .d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+  .body { padding: 12px; }
+
+  .group { background:#fff; border:1px solid #d9dee5; border-radius:6px; padding:10px 12px; margin-bottom:10px; }
+  .group h3 { font-size:12px; color:#5a6573; margin-bottom:8px; font-weight:600; }
+  .row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  label.l { font-size:12px; color:#444; min-width:64px; }
+  input.f {
+    flex:1; height:26px; border:1px solid #c4ccd6; border-radius:4px;
+    padding:0 8px; font-size:13px; background:#fff; letter-spacing:2px;
+  }
+  .chk { display:flex; align-items:center; gap:4px; font-size:12px; color:#444; }
+  button {
+    height:28px; padding:0 14px; border:1px solid #b9c2cf; border-radius:4px;
+    background:linear-gradient(#fff,#eef1f5); font-size:12px; color:#2a2f36; cursor:pointer;
+  }
+  button.primary { background:linear-gradient(#3a8bff,#2f7be0); color:#fff; border-color:#2f7be0; }
+  .btnrow { display:flex; gap:8px; margin-top:4px; }
+  input.spin { width:70px; height:26px; border:1px solid #c4ccd6; border-radius:4px; text-align:center; }
+
+  .balance-label { font-size:12px; color:#5a6573; }
+  .balance-val { font-size:30px; font-weight:700; margin:2px 0 8px; color:#111; }
+
+  .bar-wrap { margin:6px 0; }
+  .bar-top { display:flex; justify-content:space-between; font-size:12px; color:#444; margin-bottom:3px; }
+  .bar { height:14px; background:#eef1f5; border:1px solid #d6dbe2; border-radius:7px; overflow:hidden; }
+  .bar > i { display:block; height:100%; }
+  .fill-g { background:linear-gradient(90deg,#34a853,#2e7d32); }
+  .fill-t { background:linear-gradient(90deg,#4285f4,#2f6fe0); }
+  .ratio { font-size:12px; color:#6b7480; margin-top:6px; }
+
+  .usage-note { font-size:12px; color:#6b7480; line-height:1.5; }
+  .cons { font-size:12px; color:#c0392b; margin-top:6px; font-weight:600; }
+
+  .chart { width:100%; height:170px; background:#fff; border:1px solid #e3e7ec; border-radius:4px; }
+
+  .status {
+    font-size:12px; color:#333; background:#eef1f5; border-top:1px solid #d6dbe2;
+    padding:6px 12px; color:#4a5560;
+  }
+  .hint { font-size:11px; color:#9aa3ad; margin-top:10px; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <span>DeepSeek 余额 / 用量查看器</span>
+      <span class="dots"><i class="d1"></i><i class="d2"></i><i class="d3"></i></span>
+    </div>
+    <div class="body">
+
+      <!-- 设置 -->
+      <div class="group">
+        <h3>设置</h3>
+        <div class="row">
+          <label class="l">API Key：</label>
+          <input class="f" value="sk-7f3a••••••••••••••••••••••••e21c" readonly>
+          <span class="chk"><input type="checkbox"> 显示</span>
+        </div>
+        <div class="btnrow">
+          <button class="primary">保存设置</button>
+          <button>手动刷新</button>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <span class="chk"><input type="checkbox" checked> 启用</span>
+          <label class="l" style="min-width:auto;margin-left:8px;">自动刷新：</label>
+          <label class="l" style="min-width:auto;">间隔(秒)：</label>
+          <input class="spin" value="300">
+        </div>
+      </div>
+
+      <!-- 主显示 -->
+      <div class="group">
+        <div class="balance-label">当前可用余额</div>
+        <div class="balance-val">110.00 CNY</div>
+
+        <h3>余额构成（剩余比例）</h3>
+        <div class="bar-wrap">
+          <div class="bar-top"><span>赠金余额: 10.00 CNY</span><span>9.1%</span></div>
+          <div class="bar"><i class="fill-g" style="width:9.1%"></i></div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-top"><span>充值余额: 100.00 CNY</span><span>90.9%</span></div>
+          <div class="bar"><i class="fill-t" style="width:90.9%"></i></div>
+        </div>
+        <div class="ratio">赠金占比 9.1% ｜ 充值占比 90.9% ｜ 账户可用: 是</div>
+      </div>
+
+      <div class="group">
+        <h3>最近用量 / 本地追踪</h3>
+        <div class="usage-note">官方用量接口暂未公开，下方为本地余额追踪。若 DeepSeek 开放用量接口，请在 api.py 校正 USAGE_ENDPOINT 与字段解析。</div>
+        <div class="cons">本地追踪累计消耗: 12.50 CNY（自首次记录起）</div>
+      </div>
+
+      <div class="group">
+        <h3>API 价格（当前时段）</h3>
+        <div style="font-size:12px;font-weight:700;color:#c0392b;margin-bottom:6px;">当前时段：高峰时段　09-29 15:00 (北京时间)</div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#5a6573;border-bottom:1px solid #e3e7ec;padding-bottom:4px;margin-bottom:4px;">
+          <div>模型</div><div>计费项</div>
+          <div style="color:#888;">空闲时段</div>
+          <div style="color:#c0392b;font-weight:700;">高峰时段</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#333;padding:2px 0;">
+          <div>deepseek-flash</div><div>输入（缓存命中）</div>
+          <div style="color:#888;">0.02 元</div><div style="color:#c0392b;font-weight:700;">0.04 元</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#333;padding:2px 0;">
+          <div></div><div>输入（缓存未命中）</div>
+          <div style="color:#888;">1 元</div><div style="color:#c0392b;font-weight:700;">2 元</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#333;padding:2px 0;margin-bottom:4px;">
+          <div></div><div>输出</div>
+          <div style="color:#888;">4 元</div><div style="color:#c0392b;font-weight:700;">8 元</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#333;padding:2px 0;">
+          <div>deepseek-v4-pro</div><div>输入（缓存命中）</div>
+          <div style="color:#888;">0.15 元</div><div style="color:#c0392b;font-weight:700;">0.30 元</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#333;padding:2px 0;">
+          <div></div><div>输入（缓存未命中）</div>
+          <div style="color:#888;">4.5 元</div><div style="color:#c0392b;font-weight:700;">9 元</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr 1.5fr 1fr 1fr;font-size:11px;color:#333;padding:2px 0;">
+          <div></div><div>输出</div>
+          <div style="color:#888;">13.5 元</div><div style="color:#c0392b;font-weight:700;">27 元</div>
+        </div>
+        <div style="font-size:10px;color:#9aa3ad;margin-top:6px;line-height:1.6;">
+          单位：元 / 百万 tokens。版本：deepseek-flash = DeepSeek-V4.1-Flash / deepseek-v4-pro = DeepSeek-V4-Pro-0813<br>
+          并发限制：deepseek-flash 2500 / deepseek-v4-pro 500<br>
+          高峰时段：北京时间周一至周五（不含法定节假日）9:00-12:00、14:00-18:00；其余时段含周末与节假日全天空闲。高峰 = 空闲 × 2。<br>
+          本程序不自动识别法定节假日；价格来源：官方定价页，快照 2026-09-29，以官网为准。
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>余额走势（本地追踪）</h3>
+        <svg class="chart" viewBox="0 0 500 170" preserveAspectRatio="none">
+          <!-- 网格 -->
+          <line x1="32" y1="20" x2="488" y2="20" stroke="#eef1f5"/>
+          <line x1="32" y1="60" x2="488" y2="60" stroke="#eef1f5"/>
+          <line x1="32" y1="100" x2="488" y2="100" stroke="#eef1f5"/>
+          <line x1="32" y1="140" x2="488" y2="140" stroke="#eef1f5"/>
+          <!-- 折线 -->
+          <polyline fill="none" stroke="#2e7d32" stroke-width="2.5"
+            points="32,40 120,55 208,50 296,75 384,90 488,120"/>
+          <circle cx="32" cy="40" r="3" fill="#2e7d32"/>
+          <circle cx="120" cy="55" r="3" fill="#2e7d32"/>
+          <circle cx="208" cy="50" r="3" fill="#2e7d32"/>
+          <circle cx="296" cy="75" r="3" fill="#2e7d32"/>
+          <circle cx="384" cy="90" r="3" fill="#2e7d32"/>
+          <circle cx="488" cy="120" r="3" fill="#2e7d32"/>
+          <text x="32" y="14" fill="#888" font-size="9">122.50</text>
+          <text x="32" y="158" fill="#888" font-size="9">110.00</text>
+          <text x="32" y="166" fill="#888" font-size="9">09-25</text>
+          <text x="450" y="166" fill="#888" font-size="9">09-29</text>
+        </svg>
+      </div>
+
+    </div>
+    <div class="status">14:55:03　刷新成功</div>
+  </div>
+  <div class="hint">效果图 · 实际程序为 tkinter 桌面窗口，布局与此一致（数据为示例）</div>
+</body>
+</html>
