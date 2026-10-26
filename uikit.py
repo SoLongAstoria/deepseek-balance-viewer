@@ -37,6 +37,7 @@ import tkinter as tk
 from tkinter import font as tkfont
 
 import glass
+import i18n
 
 # 中英文统一字体：雅黑 UI 的中文比雅黑更紧凑，数字宽度适中
 FONT_FAMILY = "Microsoft YaHei UI"
@@ -411,6 +412,7 @@ class MainView(tk.Canvas):
     K_MINI, K_THEME, K_REFRESH, K_SHOT = "mini", "theme", "refresh", "shot"
     K_PRICE_INFO, K_CSV, K_ABOUT = "price_info", "csv", "about"
     K_AUTOSTART, K_INTERVAL = "autostart", "interval"
+    K_LANG = "lang"
 
     def __init__(self, master, app, scale=1.0, glass_on=False):
         self.S = scale
@@ -646,12 +648,14 @@ class MainView(tk.Canvas):
         pal = self.pal
         t = ("title",)
         self.hline(0, self.WIN_W, self.TB_H - 0.5, pal["wline"], tags=t)
-        self.text(self.PAD_L, self.TB_H / 2, "DeepSeek 余额 / 用量查看器",
+        self.text(self.PAD_L, self.TB_H / 2, i18n.t("app_title"),
                   12, pal["fg"], bold=True, tags=t)
-        # 右侧两个 pill 按钮（设计稿 .ops i）
-        ops = ((self.K_MINI, "迷你窗", "开启桌面悬浮迷你卡"),
-               (self.K_THEME, "切换浅色" if self.theme == "dark" else "切换深色",
-                "切换深色" if self.theme == "dark" else "切换浅色"))
+        # 右侧三个 pill 按钮（设计稿 .ops i）：迷你窗 / 主题 / 语言
+        theme_label = (i18n.t("pill_theme_light") if self.theme == "dark"
+                       else i18n.t("pill_theme_dark"))
+        ops = ((self.K_MINI, i18n.t("pill_mini"), i18n.t("tip_mini")),
+               (self.K_THEME, theme_label, theme_label),
+               (self.K_LANG, i18n.t("pill_lang"), i18n.t("pill_lang")))
         x = self.WIN_W - self.PAD_R
         for key, label, _tip in reversed(ops):
             hovered = self._hover == key
@@ -697,7 +701,7 @@ class MainView(tk.Canvas):
             self.vline(xx, y0 + padT, y0 + padT + 66, pal["cardline"], tags=t)
 
         # --- 格 1：账户余额 ---
-        self.text(xa, y0 + padT + 6.75, "账户余额", 10, pal["fg3"], bold=True, tags=t)
+        self.text(xa, y0 + padT + 6.75, i18n.t("hero_balance"), 10, pal["fg3"], bold=True, tags=t)
         cur = st.get("cur", "¥")
         bs = st.get("balance", "--")
         big_y = y0 + padT + 13.5 + 3 + 14.2
@@ -708,31 +712,31 @@ class MainView(tk.Canvas):
         gp = _mix(pal["accent"], pal["card"], 0.15)
         gg = _mix(pal["idle"], pal["card"], 0.14)
         px_ = xa
-        px_ += self.p.pill(px_, by, st.get("badge_period", "闲时 · 5 折"), 9.5,
+        px_ += self.p.pill(px_, by, st.get("badge_period", i18n.t("badge_offpeak_default")), 9.5,
                            pal["accent"] if self.theme == "dark" else "#0057B8",
                            gp, tags=t) + 5
-        self.p.pill(px_, by, st.get("badge_gift", "赠金 --"), 9.5,
+        self.p.pill(px_, by, st.get("badge_gift", i18n.t("badge_gift_default")), 9.5,
                     pal["idle"] if self.theme == "dark" else "#1B6E33", gg, tags=t)
 
         # --- 格 2：实时速率（space-between：标签左、数值右）---
-        self.text(xb, y0 + padT + 6.75, "实时速率", 10, pal["fg3"], bold=True, tags=t)
+        self.text(xb, y0 + padT + 6.75, i18n.t("hero_speed"), 10, pal["fg3"], bold=True, tags=t)
         r1 = y0 + padT + 13.5 + 5 + 9.45
         r2 = r1 + 18.9
-        self.text(xb, r1, "下载", 10, pal["fg3"], tags=t)
+        self.text(xb, r1, i18n.t("hero_down"), 10, pal["fg3"], tags=t)
         self.text_r(xb + wB, r1, st.get("net_down", "--"), 14, pal["down"],
                     bold=True, tags=t)
-        self.text(xb, r2, "上传", 10, pal["fg3"], tags=t)
+        self.text(xb, r2, i18n.t("hero_up"), 10, pal["fg3"], tags=t)
         self.text_r(xb + wB, r2, st.get("net_up", "--"), 14, pal["up"],
                     bold=True, tags=t)
 
         # --- 格 3：累计消耗 ---
-        self.text(xc, y0 + padT + 6.75, "累计消耗", 10, pal["fg3"], bold=True, tags=t)
+        self.text(xc, y0 + padT + 6.75, i18n.t("hero_usage"), 10, pal["fg3"], bold=True, tags=t)
         c1 = y0 + padT + 13.5 + 5 + 7.5
         c2 = c1 + 14.2 + 4
-        self.text(xc, c1, "今日", 10, pal["fg3"], tags=t)
+        self.text(xc, c1, i18n.t("hero_today"), 10, pal["fg3"], tags=t)
         self.text_r(xc + wC, c1, st.get("cons_today", "--"), 12, pal["fg"],
                     bold=True, tags=t)
-        self.text(xc, c2, "本月", 10, pal["fg3"], tags=t)
+        self.text(xc, c2, i18n.t("hero_month"), 10, pal["fg3"], tags=t)
         self.text_r(xc + wC, c2, st.get("cons_month", "--"), 12, pal["fg"],
                     bold=True, tags=t)
 
@@ -741,8 +745,8 @@ class MainView(tk.Canvas):
         self.hline(x0 + padL, x1 - padL, bars_y, pal["cardline"], tags=t)
         row1 = bars_y + 1 + 9 + 6.75
         for i, (lab, pct_k, val_k, colors) in enumerate((
-                ("赠金", "grant_pct", "grant_val", FIXED["bar_grant"]),
-                ("充值", "topup_pct", "topup_val", FIXED["bar_topup"]))):
+                (i18n.t("bar_grant"), "grant_pct", "grant_val", FIXED["bar_grant"]),
+                (i18n.t("bar_topup"), "topup_pct", "topup_val", FIXED["bar_topup"]))):
             yc = row1 + i * 18.5
             self.text(xa, yc, lab, 10, pal["fg3"], bold=True, tags=t)
             tx0 = xa + 44
@@ -767,7 +771,7 @@ class MainView(tk.Canvas):
         self.p.card_bg(x0, y0, x1 - x0, h, pal, r=self.CARD_R, tags=t)
         padL = 12
         # 卡头
-        self.text(x0 + padL, y0 + 10 + 7.5, "模型价格", 11, pal["fg2"],
+        self.text(x0 + padL, y0 + 10 + 7.5, i18n.t("price_title"), 11, pal["fg2"],
                   bold=True, tags=t)
         more = st.get("price_more", "")
         is_peak = st.get("is_peak", False)
@@ -778,7 +782,8 @@ class MainView(tk.Canvas):
         self._reg(mx - mw - 4, y0 + 10, mx, y0 + 10 + 15, self.K_PRICE_INFO, "price")
         # 表格
         rows = st.get("price_rows", [])
-        heads = ("模型", "缓存命中", "缓存未命中", "输出")
+        heads = (i18n.t("price_head_model"), i18n.t("price_head_hit"),
+                 i18n.t("price_head_miss"), i18n.t("price_head_out"))
         top = y0 + 32
         th_h, td_h = 18.8, 21.2
         # 列宽：数值列恰好容纳内容，模型列吃剩余，状态列贴右
@@ -855,7 +860,7 @@ class MainView(tk.Canvas):
         x0, x1 = self.PAD_L, self.WIN_W - self.PAD_R
         self.p.card_bg(x0, y0, x1 - x0, h, pal, r=self.CARD_R, tags=t)
         padL = 12
-        self.text(x0 + padL, y0 + 10 + 7.5, "近 7 日余额", 11, pal["fg2"],
+        self.text(x0 + padL, y0 + 10 + 7.5, i18n.t("chart_title"), 11, pal["fg2"],
                   bold=True, tags=t)
         self.text_r(x1 - padL, y0 + 10 + 7.5, st.get("chart_more", ""), 9.5,
                     pal["fg3"], tags=t)
@@ -865,7 +870,7 @@ class MainView(tk.Canvas):
         vals = st.get("chart_vals") or []
         if len(vals) < 2:
             self.text_c((cx0 + cx1) / 2, cy0 + ch / 2,
-                        "数据不足，刷新两次后显示走势", 10, pal["fg3"], tags=t)
+                        i18n.t("chart_empty"), 10, pal["fg3"], tags=t)
             self._draw_xlab(cx0, cx1, cy0 + ch, st.get("chart_labels") or [], t)
             return
         vmin, vmax = min(vals), max(vals)
@@ -920,8 +925,8 @@ class MainView(tk.Canvas):
         x0, x1 = self.PAD_L, self.WIN_W - self.PAD_R
         self.p.card_bg(x0, y0, x1 - x0, h, pal, r=self.CARD_R, tags=t)
         padL = 12
-        self.text(x0 + padL, y0 + 10 + 7.5, "设置", 11, pal["fg2"], bold=True, tags=t)
-        self.text_r(x1 - padL, y0 + 10 + 7.5, "自动保存", 9.5, pal["fg3"], tags=t)
+        self.text(x0 + padL, y0 + 10 + 7.5, i18n.t("settings_title"), 11, pal["fg2"], bold=True, tags=t)
+        self.text_r(x1 - padL, y0 + 10 + 7.5, i18n.t("settings_autosave"), 9.5, pal["fg3"], tags=t)
 
         # 设计稿 .settings { grid-template-columns: 1fr 1fr; gap: 8px 14px }
         L = x0 + padL
@@ -933,7 +938,7 @@ class MainView(tk.Canvas):
 
         # --- row1：API Key（横跨，输入框由 Entry 覆盖）---
         y = y0 + 32
-        self.text(L, y + 11, "API Key", 10.5, pal["fg3"], bold=True, tags=t)
+        self.text(L, y + 11, i18n.t("settings_apikey"), 10.5, pal["fg3"], bold=True, tags=t)
         kx, ky, kw, kh = self._key_box()
         focused = self._entries.get("key") is not None and \
             self.focus_get() is self._entries.get("key")
@@ -943,15 +948,15 @@ class MainView(tk.Canvas):
         # --- row2：刷新间隔 / 开机自启 ---
         y2 = y + 22 + 8
         yc = y2 + HL / 2
-        self.text(L, yc, "刷新间隔", 10.5, pal["fg3"], bold=True, tags=t)
-        iv_txt = f"{st.get('interval', 60)} 秒"
+        self.text(L, yc, i18n.t("settings_interval"), 10.5, pal["fg3"], bold=True, tags=t)
+        iv_txt = i18n.t("fmt_interval_label", val=st.get("interval", 60))
         hovering = self._hover == self.K_INTERVAL
         self.text_r(LEND, yc, iv_txt, 10.5,
                     pal["fg"] if hovering else pal["fg2"], bold=hovering, tags=t)
         iw = self.p.tw(iv_txt, 10.5) / self.S
         self._reg(LEND - iw - 4, y2, LEND, y2 + HL, self.K_INTERVAL, "settings")
 
-        self.text(R, yc, "开机自启", 10.5, pal["fg3"], bold=True, tags=t)
+        self.text(R, yc, i18n.t("settings_autostart"), 10.5, pal["fg3"], bold=True, tags=t)
         sw = 26
         self.p.switch(REND - sw, yc, bool(st.get("autostart")), pal, tags=t)
         self._reg(REND - sw - 2, y2, REND, y2 + HL, self.K_AUTOSTART, "settings")
@@ -959,9 +964,9 @@ class MainView(tk.Canvas):
         # --- row3：迷你卡显示 chips（横跨）---
         y3 = y2 + HL + 8
         yc3 = y3 + 9
-        self.text(L, yc3, "迷你卡显示", 10.5, pal["fg3"], bold=True, tags=t)
+        self.text(L, yc3, i18n.t("settings_mini_shows"), 10.5, pal["fg3"], bold=True, tags=t)
         chips = st.get("chips") or []
-        cx = L + self.p.tw("迷你卡显示", 10.5, True) / self.S + 10
+        cx = L + self.p.tw(i18n.t("settings_mini_shows"), 10.5, True) / self.S + 10
         for i, (ckey, label, on) in enumerate(chips):
             tw = self.p.tw(label, 9.5) / self.S
             w = tw + 14
@@ -980,12 +985,12 @@ class MainView(tk.Canvas):
         # --- row4：数据导出 / 关于 ---
         y4 = y3 + 18 + 8
         yc4 = y4 + HL / 2
-        self.text(L, yc4, "数据导出", 10.5, pal["fg3"], bold=True, tags=t)
+        self.text(L, yc4, i18n.t("settings_export"), 10.5, pal["fg3"], bold=True, tags=t)
         hov = self._hover == self.K_CSV
         self.text_r(LEND, yc4, "CSV", 10.5, pal["accent"] if hov else pal["fg2"],
                     bold=hov, tags=t)
         self._reg(LEND - 30, y4, LEND, y4 + HL, self.K_CSV, "settings")
-        self.text(R, yc4, "关于", 10.5, pal["fg3"], bold=True, tags=t)
+        self.text(R, yc4, i18n.t("settings_about"), 10.5, pal["fg3"], bold=True, tags=t)
         hov = self._hover == self.K_ABOUT
         self.text_r(REND, yc4, f"v{APP_VERSION}", 10.5,
                     pal["accent"] if hov else pal["fg3"], tags=t)
@@ -1002,9 +1007,9 @@ class MainView(tk.Canvas):
         yc = y + self.STATUS_H / 2
         # 状态栏是 9.5px 小字，抗锯齿会稀释笔画颜色：用 fg3 实测对比度只有
         # 4.28:1（低于 WCAG AA），提一档到 fg2 才稳。
-        self.text(self.PAD_L, yc, st.get("status", "就绪"), 9.5, pal["fg2"], tags=t)
+        self.text(self.PAD_L, yc, st.get("status", i18n.t("status_ready")), 9.5, pal["fg2"], tags=t)
         x = self.WIN_W - self.PAD_R
-        for key, label in ((self.K_SHOT, "截图"), (self.K_REFRESH, "刷新")):
+        for key, label in ((self.K_SHOT, i18n.t("status_shot")), (self.K_REFRESH, i18n.t("status_refresh"))):
             hov = self._hover == key
             w = self.p.tw(label, 9.5) / self.S + 4
             self.text_r(x, yc, label, 9.5, pal["accent"] if hov else pal["fg2"],
@@ -1263,15 +1268,15 @@ class MiniView:
         first = True
         if show.get("cons"):
             y += 7 if first else 3
-            rows.append(("sub", y + self.SUB_H / 2, "cons_today", "今日消耗"))
+            rows.append(("sub", y + self.SUB_H / 2, "cons_today", i18n.t("mini_today")))
             y += self.SUB_H
             first = False
             y += 3
-            rows.append(("sub", y + self.SUB_H / 2, "cons_month", "本月消耗"))
+            rows.append(("sub", y + self.SUB_H / 2, "cons_month", i18n.t("mini_month")))
             y += self.SUB_H
         if show.get("price"):
             y += 7 if first else 3
-            rows.append(("sub", y + self.SUB_H / 2, "price", "当前计费"))
+            rows.append(("sub", y + self.SUB_H / 2, "price", i18n.t("mini_price")))
             y += self.SUB_H
             first = False
         h = y

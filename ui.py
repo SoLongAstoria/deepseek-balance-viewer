@@ -28,6 +28,7 @@ import tray as tray_mod
 import netmon
 import glass
 import uikit
+import i18n
 from uikit import MAIN_THEMES, MINI_THEMES, APP_VERSION, _mix
 
 # 网速轮询间隔（毫秒）：每 1 秒刷新一次实时上下行速率
@@ -40,13 +41,13 @@ GLASS_RADIUS = uikit.MINI_CARD_RADIUS
 # 迷你卡投影浓度（按主题）：浅色卡在亮桌面上需要更淡，深色卡稍重一点
 _SHADOW_ALPHA = {"light": 0.15, "dark": 0.30}
 
-# 迷你卡显示项（顺序 = 设计稿 chips 顺序）
+# 迷你卡显示项（顺序 = 设计稿 chips 顺序）；label 为 i18n 键，渲染时再翻译
 MINI_CHIPS = (
-    ("balance", "余额"),
-    ("period", "时段"),
-    ("price", "价格"),
-    ("cons", "累计"),
-    ("net", "网速"),
+    ("balance", "chip_balance"),
+    ("period", "chip_period"),
+    ("price", "chip_price"),
+    ("cons", "chip_usage"),
+    ("net", "chip_net"),
 )
 
 
@@ -61,11 +62,14 @@ class App(tk.Tk):
             pass
 
         super().__init__()
-        self.title("DeepSeek 余额 / 用量查看器")
+        self.title(i18n.t("app_title"))
         self.resizable(False, False)
         self._apply_app_icon()
 
         self.config_obj = cfg.Config()
+        # 界面语言：优先读配置，未设置保持默认（zh-CN）
+        i18n.set_lang(self.config_obj.lang)
+        self.title(i18n.t("app_title"))
         self._auto_timer = None
         self.mini = None            # 迷你置顶窗口（Tk Toplevel），未打开为 None
         self.mini_view = None       # 迷你卡渲染器（MiniView）
@@ -105,7 +109,7 @@ class App(tk.Tk):
 
         # 数据快照（界面状态由它驱动）
         self._data = {}
-        self._status_text = "就绪"
+        self._status_text = i18n.t("status_ready")
         self._history_cache = []
 
         self._build_ui()
@@ -117,7 +121,7 @@ class App(tk.Tk):
         self.tray_ok = self.tray_mgr.start()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         if not self.tray_ok:
-            self.set_status("托盘不可用，关闭窗口将直接退出程序")
+            self.set_status(i18n.t("tray_unavailable"))
 
         if self.config_obj.has_key():
             if start_mini:
@@ -215,7 +219,7 @@ class App(tk.Tk):
             "interval": self._interval(),
             "autostart": self._is_autostart_enabled(),
             "status": self._status_text,
-            "chips": [(k, lab, self.mini_show_vars[k].get())
+            "chips": [(k, i18n.t(lab), self.mini_show_vars[k].get())
                       for k, lab in MINI_CHIPS],
             "net_down": self._data.get("net_down", "--"),
             "net_up": self._data.get("net_up", "--"),
@@ -262,6 +266,8 @@ class App(tk.Tk):
             self._toggle_autostart()
         elif key == uikit.MainView.K_INTERVAL:
             self._edit_interval()
+        elif key == uikit.MainView.K_LANG:
+            self._toggle_lang()
         elif key.startswith("chip:"):
             k = key.split(":", 1)[1]
             var = self.mini_show_vars.get(k)
@@ -277,7 +283,8 @@ class App(tk.Tk):
         self.config_obj.api_key = val
         self.config_obj.save()
         self._evaluate_key_state()
-        self.set_status("API Key 已自动保存" + ("" if val else "（已清空）"))
+        self.set_status(i18n.t("fmt_apikey_saved")
+                       + ("" if val else i18n.t("apikey_cleared")))
         if val:
             self.trigger_refresh()
 
@@ -285,16 +292,16 @@ class App(tk.Tk):
         want = not self._is_autostart_enabled()
         ok = self._set_autostart(want)
         if ok:
-            self.set_status("已" + ("开启" if want else "关闭")
-                            + "开机自启（启动即钉桌面迷你窗）")
+            self.set_status(i18n.t("fmt_autostart_on") if want
+                            else i18n.t("fmt_autostart_off"))
         else:
-            self.set_status("开机自启设置失败（可能需要管理员权限）")
+            self.set_status(i18n.t("autostart_fail"))
         self.refresh_view("settings")
 
     def _edit_interval(self):
         cur = self._interval()
         val = simpledialog.askinteger(
-            "刷新间隔", "自动刷新间隔（秒，30–3600）：",
+            i18n.t("interval_title"), i18n.t("interval_prompt"),
             initialvalue=cur, minvalue=30, maxvalue=3600, parent=self)
         if not val:
             return
@@ -302,7 +309,7 @@ class App(tk.Tk):
         self.config_obj.save()
         if self.auto_on():
             self._schedule_auto()
-        self.set_status(f"刷新间隔已设为 {val} 秒")
+        self.set_status(i18n.t("fmt_interval_set", val=val))
         self.refresh_view("settings")
 
     def show_price_info(self):
@@ -311,27 +318,21 @@ class App(tk.Tk):
         versions = " / ".join(f"{m['id']} = {m['version']}" for m in rows)
         concs = " / ".join(f"{m['id']} {m['conc']}" for m in rows)
         messagebox.showinfo(
-            "价格说明",
-            f"单位：元 / 百万 tokens\n"
-            f"模型版本：{versions}\n"
-            f"并发限制：{concs}\n\n"
-            f"高峰时段：北京时间周一至周五（不含法定节假日）\n"
-            f"  9:00–12:00、14:00–18:00；其余时段（含周末与节假日全天）为空闲。\n"
-            f"高峰价 = 空闲价 × {price_mod.PEAK_FACTOR:g}\n\n"
-            f"本程序不自动识别法定节假日（节假日会保守算作高峰）。\n"
-            f"价格快照：{price_mod.PRICING_SNAPSHOT}\n"
-            f"来源：{price_mod.PRICING_SOURCE}\n以官网为准。",
+            i18n.t("price_info_title"),
+            i18n.t("price_info_body",
+                   versions=versions, concs=concs,
+                   peak=price_mod.PEAK_FACTOR,
+                   snapshot=price_mod.PRICING_SNAPSHOT,
+                   source=price_mod.PRICING_SOURCE),
             parent=self)
 
     def show_about(self):
         messagebox.showinfo(
-            "关于",
-            f"DeepSeek 余额 / 用量查看器  v{APP_VERSION}\n\n"
-            f"· 余额与赠金数据来自 DeepSeek 官方接口\n"
-            f"· 消耗与走势为本机追踪估算（非官方用量）\n"
-            f"· API Key 使用 Windows DPAPI 加密，仅存本机\n"
-            f"· 配置文件：{cfg.CONFIG_PATH}\n\n"
-            f"价格来源：{price_mod.PRICING_SOURCE}",
+            i18n.t("about_title"),
+            i18n.t("about_body",
+                   version=APP_VERSION,
+                   config=cfg.CONFIG_PATH,
+                   source=price_mod.PRICING_SOURCE),
             parent=self)
 
     # ==================================================================
@@ -341,7 +342,7 @@ class App(tk.Tk):
         if not self.config_obj.has_key():
             self._data = {
                 "cur": "¥", "balance": "--",
-                "badge_period": "未配置 Key", "badge_gift": "赠金 --",
+                "badge_period": i18n.t("no_key_badge"), "badge_gift": i18n.t("badge_gift_default"),
                 "cons_today": "--", "cons_month": "--",
                 "grant_pct": 0, "grant_val": "--", "topup_pct": 0, "topup_val": "--",
             }
@@ -356,8 +357,9 @@ class App(tk.Tk):
         """价格表状态：当前时段两行 + 另一时段对比一行（设计稿 3 行）。"""
         period, rows = price_mod.get_price_table()
         is_peak = period["peak"]
-        short_cur = "峰时" if is_peak else "闲时"
-        short_ref = "闲时" if is_peak else "峰时"
+        short_cur = i18n.t("period_peak") if is_peak else i18n.t("period_offpeak")
+        short_ref = i18n.t("period_offpeak") if is_peak else i18n.t("period_peak")
+        off_zhe = 10 / price_mod.PEAK_FACTOR
         out = []
         for m in rows:
             cur = m["peak"] if is_peak else m["offpeak"]
@@ -376,12 +378,16 @@ class App(tk.Tk):
             "st_kind": "on" if is_peak else "peak", "dim": True,
         })
         # 卡头右侧：当前折扣 + 距切换时间
-        disc = f"{price_mod.PEAK_FACTOR:g} 倍价" if is_peak else \
-            f"{10 / price_mod.PEAK_FACTOR:g} 折"
+        disc = (i18n.t("fmt_peak_disc", factor=price_mod.PEAK_FACTOR)
+                if is_peak else
+                i18n.t("fmt_offpeak_disc", zhe=off_zhe, pct=off_zhe * 10))
         nxt = price_mod.next_period_change()
-        more = f"{short_cur} {disc}生效中"
+        more = i18n.t("fmt_more_active", period=short_cur, disc=disc)
         if nxt:
-            more += f" · 距{'空闲' if is_peak else '峰时'} {self._fmt_left(nxt[0])}"
+            next_period = (i18n.t("period_offpeak") if is_peak
+                           else i18n.t("period_peak"))
+            more += i18n.t("fmt_more_until",
+                           next=next_period, left=self._fmt_left(nxt[0]))
         self._data.update({"price_rows": out, "is_peak": is_peak, "price_more": more})
 
     @staticmethod
@@ -417,7 +423,7 @@ class App(tk.Tk):
         self._data.update({
             "chart_vals": vals,
             "chart_labels": labels,
-            "chart_more": f"日均 ¥{cons7 / span:,.2f}" if vals else "",
+            "chart_more": i18n.t("fmt_daily_avg", v=f"{cons7 / span:,.2f}") if vals else "",
         })
 
     def _fill_from_balance(self, balance):
@@ -440,10 +446,11 @@ class App(tk.Tk):
         cons = histmod.consumption_since_start(hist)
 
         period, _r = price_mod.get_price_table()
+        off_zhe = 10 / price_mod.PEAK_FACTOR
         if period["peak"]:
-            badge = f"峰时 · {price_mod.PEAK_FACTOR:g} 倍价"
+            badge = i18n.t("fmt_badge_peak", factor=price_mod.PEAK_FACTOR)
         else:
-            badge = f"闲时 · {10 / price_mod.PEAK_FACTOR:g} 折"
+            badge = i18n.t("fmt_badge_offpeak", zhe=off_zhe, pct=off_zhe * 10)
 
         gp = (grant / total * 100) if total > 0 else 0
         tp = (topup / total * 100) if total > 0 else 0
@@ -451,7 +458,7 @@ class App(tk.Tk):
             "cur": cur_sym,
             "balance": f"{total:,.2f}",
             "badge_period": badge,
-            "badge_gift": f"赠金 ¥{grant:,.2f}",
+            "badge_gift": i18n.t("fmt_grant", v=f"{grant:,.2f}"),
             "cons_today": f"{cur_sym}{cons_today:,.2f}",
             "cons_month": f"{cur_sym}{cons_month:,.2f}",
             "grant_pct": gp, "grant_val": f"¥{grant:,.2f} / ¥{total:,.2f}",
@@ -469,9 +476,9 @@ class App(tk.Tk):
     # ==================================================================
     def trigger_refresh(self):
         if not self.config_obj.has_key():
-            self.set_status("未配置 API Key，无法刷新")
+            self.set_status(i18n.t("no_key_refresh"))
             return
-        self.set_status("正在请求 DeepSeek ...")
+        self.set_status(i18n.t("refreshing"))
         threading.Thread(target=self._worker, daemon=True).start()
 
     def _worker(self):
@@ -493,19 +500,19 @@ class App(tk.Tk):
             usage = client.get_usage()  # 官方未公开时为 None
             post(self._on_success, balance, usage)
         except dsapi.AuthError as e:
-            post(self._on_error, "API Key 错误", str(e))
+            post(self._on_error, i18n.t("err_auth"), str(e))
         except dsapi.InsufficientBalanceError as e:
-            post(self._on_error, "余额不足", str(e))
+            post(self._on_error, i18n.t("err_insufficient"), str(e))
         except dsapi.RateLimitError as e:
-            post(self._on_error, "请求被限流", str(e))
+            post(self._on_error, i18n.t("err_ratelimit"), str(e))
         except dsapi.NetworkError as e:
-            post(self._on_error, "网络异常", str(e))
+            post(self._on_error, i18n.t("err_network"), str(e))
         except dsapi.ServerError as e:
-            post(self._on_error, "服务端错误", str(e))
+            post(self._on_error, i18n.t("err_server"), str(e))
         except dsapi.DeepSeekApiError as e:
-            post(self._on_error, "接口异常", str(e))
+            post(self._on_error, i18n.t("err_api"), str(e))
         except Exception as e:
-            post(self._on_error, "未知错误", str(e))
+            post(self._on_error, i18n.t("err_unknown"), str(e))
 
     def _on_success(self, balance, usage):
         # usage：官方用量接口暂未公开，界面以本地余额追踪为准
@@ -514,15 +521,16 @@ class App(tk.Tk):
         ok = self._fill_from_balance(balance)
         if not ok:
             self._data["balance"] = "--"
-            self.set_status("接口返回为空，请稍后重试")
+            self.set_status(i18n.t("empty_response"))
         else:
-            self.set_status("刷新成功" + ("" if balance.get("is_available")
-                                          else "（账户余额不可用）"))
+            self.set_status(i18n.t("fmt_refresh_ok")
+                           + ("" if balance.get("is_available")
+                              else i18n.t("refresh_unavailable")))
         self.refresh_view()
         self._update_mini()
 
     def _on_error(self, title, msg):
-        self.set_status(f"{title}：{msg}")
+        self.set_status(i18n.t("fmt_err", title=title, msg=msg))
         messagebox.showwarning(title, msg, parent=self)
 
     # ==================================================================
@@ -542,7 +550,30 @@ class App(tk.Tk):
             self._fill_chart(self._history_cache)
         self.refresh_view()
         self._apply_mini_theme()
-        self.set_status(f"已切换到{'深色' if self.theme == 'dark' else '浅色'}主题")
+        self.set_status(i18n.t("fmt_theme",
+                               theme=i18n.t("theme_dark" if self.theme == "dark"
+                                            else "theme_light")))
+
+    # ==================================================================
+    # 语言切换
+    # ==================================================================
+    def _toggle_lang(self):
+        """在 zh-CN / en-US 之间切换，持久化到配置并整窗重绘。"""
+        new_lang = "en-US" if i18n.get_lang() == "zh-CN" else "zh-CN"
+        i18n.set_lang(new_lang)
+        self.config_obj.lang = new_lang
+        self.config_obj.save()
+        self.title(i18n.t("app_title"))
+        self.refresh_view()           # 整窗重绘，标题栏语言按钮同步更新
+        if self.mini is not None:
+            self._update_mini()
+        # 托盘菜单在启动时已按语言生成；运行中切换需重建菜单才即时生效
+        if self.tray_ok:
+            try:
+                self.tray_mgr.rebuild_menu(self)
+            except Exception:
+                pass
+        self.set_status(i18n.t("status_ready"))
 
     # ==================================================================
     # 迷你置顶窗（钉在桌面）
@@ -584,11 +615,11 @@ class App(tk.Tk):
         self.mini_img_label.pack(fill="both", expand=True)
 
         self.mini_menu = tk.Menu(self, tearoff=0)
-        self.mini_menu.add_command(label="恢复完整窗口", command=self._close_mini)
-        self.mini_menu.add_command(label="手动刷新", command=self.trigger_refresh)
-        self.mini_menu.add_command(label="切换深/浅色", command=self._toggle_theme)
+        self.mini_menu.add_command(label=i18n.t("mini_restore"), command=self._close_mini)
+        self.mini_menu.add_command(label=i18n.t("mini_refresh"), command=self.trigger_refresh)
+        self.mini_menu.add_command(label=i18n.t("mini_toggle_theme"), command=self._toggle_theme)
         self.mini_menu.add_separator()
-        self.mini_menu.add_command(label="退出", command=self._quit_app)
+        self.mini_menu.add_command(label=i18n.t("mini_quit"), command=self._quit_app)
 
         # 事件直接绑在窗口与 Label 上（Label 覆盖整个窗口区域）
         for w in (self.mini, self.mini_img_label):
@@ -610,7 +641,7 @@ class App(tk.Tk):
             except Exception:
                 pass
             self.deiconify()
-            self.set_status("迷你窗打开失败，已恢复主窗（详见日志）")
+            self.set_status(i18n.t("mini_open_fail"))
             return
         self.withdraw()
         # region 保险：窗口真正映射 / 主窗 withdraw 之后 Tk 可能重设一次尺寸，
@@ -648,7 +679,7 @@ class App(tk.Tk):
         self.mini_view = None
         self._mini_region_key = None
         self.deiconify()
-        self.set_status("已恢复完整窗口")
+        self.set_status(i18n.t("mini_restored"))
 
     def _mini_start_drag(self, event):
         # Tk 卡片方案：窗口即卡片（无阴影外扩），锚点直接用窗口坐标
@@ -735,15 +766,17 @@ class App(tk.Tk):
         pv = flash["peak" if period["peak"] else "offpeak"]["out"]
         d = self.last_main_data or {}
         cur = d.get("cur", "¥")
-        badge = (f"峰时 · {price_mod.PEAK_FACTOR:g} 倍价" if period["peak"]
-                 else f"闲时 · {10 / price_mod.PEAK_FACTOR:g} 折")
+        off_zhe = 10 / price_mod.PEAK_FACTOR
+        badge = (i18n.t("fmt_badge_peak", factor=price_mod.PEAK_FACTOR)
+                 if period["peak"] else
+                 i18n.t("fmt_badge_offpeak", zhe=off_zhe, pct=off_zhe * 10))
         data = {
             "balance": f"{cur}{d['total']:,.2f}" if d else "--",
             "badge_period": badge,
             "badge_gift": "",
             "cons_today": f"{cur}{self._cons_of('today'):,.2f}",
             "cons_month": f"{cur}{self._cons_of('month'):,.2f}",
-            "price": f"输出 ¥{pv:g}/百万",
+            "price": i18n.t("fmt_price_out", v=f"{pv:g}"),
             "net_down": "--", "net_up": "--",
         }
         if self._net_last is not None:
@@ -853,8 +886,8 @@ class App(tk.Tk):
                 self._data["net_up"] = "--"
                 self.refresh_view("hero")
         except Exception:
-            self._data["net_down"] = "不可用"
-            self._data["net_up"] = "不可用"
+            self._data["net_down"] = i18n.t("net_unavailable")
+            self._data["net_up"] = i18n.t("net_unavailable")
             self.refresh_view("hero")
         self._net_timer = self.after(NET_REFRESH_MS, self._net_tick)
 
@@ -884,8 +917,8 @@ class App(tk.Tk):
         self._commit_key()
         if self.tray_ok:
             self.withdraw()
-            self.tray_mgr.notify("DeepSeek 余额查看器",
-                                 "已最小化到系统托盘，右键图标可恢复或退出")
+            self.tray_mgr.notify(i18n.t("tray_notify_title"),
+                                 i18n.t("tray_notify_msg"))
         else:
             self._quit_app()
 
@@ -900,7 +933,7 @@ class App(tk.Tk):
             self._close_mini()
         self.deiconify()
         self.lift()
-        self.set_status("已从托盘恢复窗口")
+        self.set_status(i18n.t("tray_restored"))
 
     def _quit_app(self):
         self._commit_key()
@@ -960,24 +993,26 @@ class App(tk.Tk):
         import csv
         hist = histmod.load_history()
         if not hist:
-            messagebox.showwarning("无数据", "暂无余额历史可导出，请先刷新几次。",
-                                   parent=self)
+            messagebox.showwarning(i18n.t("csv_no_data"),
+                                   i18n.t("csv_no_data_msg"), parent=self)
             return
         first = hist[0]["balance"]
         path = f"balance_history_{datetime.now():%Y%m%d}.csv"
         try:
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 w = csv.writer(f)
-                w.writerow(["时间", "币种", "总余额", "累计消耗(相对首次)"])
+                w.writerow([i18n.t("csv_header_time"), i18n.t("csv_header_currency"),
+                            i18n.t("csv_header_balance"), i18n.t("csv_header_used")])
                 for r in hist:
                     w.writerow([r["time"], r["currency"],
                                 f"{r['balance']:.2f}",
                                 f"{first - r['balance']:.2f}"])
-            messagebox.showinfo("已导出", f"已保存：\n{os.path.abspath(path)}",
+            messagebox.showinfo(i18n.t("csv_exported"),
+                                i18n.t("csv_exported_msg", path=os.path.abspath(path)),
                                 parent=self)
-            self.set_status(f"已导出 CSV：{path}")
+            self.set_status(i18n.t("fmt_csv_exported", path=path))
         except Exception as e:
-            messagebox.showerror("导出失败", str(e), parent=self)
+            messagebox.showerror(i18n.t("csv_fail"), str(e), parent=self)
 
     # ---- 截图当前可见窗口 ----
     def export_screenshot(self):
@@ -988,9 +1023,8 @@ class App(tk.Tk):
             elif self.winfo_viewable():
                 target = self
             else:
-                messagebox.showwarning("无窗口",
-                                       "当前无可截图窗口，请先显示主窗口或迷你窗。",
-                                       parent=self)
+                messagebox.showwarning(i18n.t("shot_no_window"),
+                                       i18n.t("shot_no_window_msg"), parent=self)
                 return
             s = self.S
             x, y = target.winfo_rootx(), target.winfo_rooty()
@@ -998,11 +1032,12 @@ class App(tk.Tk):
             img = ImageGrab.grab((x, y, x + w, y + h))
             path = f"balance_snapshot_{datetime.now():%Y%m%d_%H%M%S}.png"
             img.save(path)
-            messagebox.showinfo("已截图", f"已保存：\n{os.path.abspath(path)}",
+            messagebox.showinfo(i18n.t("shot_done"),
+                                i18n.t("shot_done_msg", path=os.path.abspath(path)),
                                 parent=self)
-            self.set_status(f"已截图：{path}")
+            self.set_status(i18n.t("fmt_shot_saved", path=path))
         except Exception as e:
-            messagebox.showerror("截图失败", str(e), parent=self)
+            messagebox.showerror(i18n.t("shot_fail"), str(e), parent=self)
 
 
 if __name__ == "__main__":

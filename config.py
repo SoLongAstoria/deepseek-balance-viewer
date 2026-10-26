@@ -135,6 +135,8 @@ DEFAULTS = {
     },
     # 界面折叠状态：true = 该板块已收起（下次启动保持）
     "ui": {
+        # 界面语言：zh-CN / en-US（启动时读取，未设置默认 zh-CN）
+        "lang": "zh-CN",
         "collapse_balance": "false",
         "collapse_usage": "false",
         "collapse_price": "false",
@@ -193,3 +195,12 @@ class Config:
 
     def set(self, section: str, key: str, value):
         self.parser.set(section, key, str(value))
+
+    # ---- 语言 ----
+    @property
+    def lang(self) -> str:
+        return self.get("ui", "lang", "zh-CN") or "zh-CN"
+
+    @lang.setter
+    def lang(self, value: str):
+        self.parser.set("ui", "lang", str(value))

@@ -17,6 +17,8 @@ except Exception as _e:   # 缺依赖则降级为无托盘，不能因此让主�
     TRAY_AVAILABLE = False
     TRAY_IMPORT_ERROR = _e
 
+import i18n
+
 
 def make_icon(size: int = 64):
     """托盘图标 —— 与 exe / 窗口图标**同源**（`icon_art`）。
@@ -52,13 +54,13 @@ class TrayManager:
             self.icon = pystray.Icon(
                 "DeepSeekBalanceViewer",
                 make_icon(),
-                "DeepSeek 余额查看器",
+                i18n.t("tray_name"),
             )
             self.icon.menu = pystray.Menu(
-                pystray.MenuItem("显示主窗口", self._show_main),
-                pystray.MenuItem("钉在桌面", self._open_mini),
-                pystray.MenuItem("刷新", self._refresh),
-                pystray.MenuItem("退出", self._quit),
+                pystray.MenuItem(i18n.t("tray_show"), self._show_main),
+                pystray.MenuItem(i18n.t("tray_pin"), self._open_mini),
+                pystray.MenuItem(i18n.t("tray_refresh"), self._refresh),
+                pystray.MenuItem(i18n.t("tray_quit"), self._quit),
             )
             self.icon.run_detached()   # 非阻塞，内部启线程
             return True
@@ -72,6 +74,17 @@ class TrayManager:
                 self.icon.stop()
             except Exception:
                 pass
+
+    def rebuild_menu(self):
+        """按当前语言重建右键菜单（语言切换后即时生效）。"""
+        if self.icon is None:
+            return
+        self.icon.menu = pystray.Menu(
+            pystray.MenuItem(i18n.t("tray_show"), self._show_main),
+            pystray.MenuItem(i18n.t("tray_pin"), self._open_mini),
+            pystray.MenuItem(i18n.t("tray_refresh"), self._refresh),
+            pystray.MenuItem(i18n.t("tray_quit"), self._quit),
+        )
 
     def notify(self, title: str, message: str):
         if self.icon:

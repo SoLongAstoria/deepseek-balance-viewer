@@ -2,6 +2,8 @@
 
 <p align="center"><img src="app_icon.png" width="120" alt="icon"></p>
 
+> 🌐 English version: [README_EN.md](README_EN.md) · 界面内置「中文 / EN」切换按钮（标题栏右侧）
+
 一个轻量 Windows 桌面程序，用于查看你的 **DeepSeek 开放平台账户的余额与用量**。
 核心功能纯 Python 标准库实现（tkinter + urllib + configparser + ctypes/DPAPI）。
 「系统托盘」与「截图」功能需 `pystray` + `Pillow`（打包时已自动打入 exe；脚本模式 `pip install pystray pillow` 即可）。
